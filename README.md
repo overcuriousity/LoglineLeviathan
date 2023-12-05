@@ -8,7 +8,7 @@ This repository remains in concept state until further development.
 
 ## Aim
 The application is aimed to all persons which are interested in OSINT, network forensics, data science and crypto-ivestigations.
-It is explicitly not aimed at any criminal activities.
+It is explicitly not aimed to support any criminal activities.
 
 ## Concept
 The application will consist of three main scripts:
