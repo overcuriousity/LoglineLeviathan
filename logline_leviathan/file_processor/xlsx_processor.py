@@ -75,7 +75,7 @@ def process_xlsx_file(file_path, file_mimetype, thread_instance, db_session, abo
                 logging.info("Processing aborted.")
                 return entity_count
 
-            content = [''.join([str(cell.value) if cell.value is not None else '' for cell in row]) for row in sheet.iter_rows()]
+            content = [' '.join([str(cell.value) if cell.value is not None else ' ' for cell in row]) for row in sheet.iter_rows()]
             full_content = '\n'.join(content)
             for regex in regex_patterns:
                 if not regex.regex_pattern.strip():
@@ -89,7 +89,7 @@ def process_xlsx_file(file_path, file_mimetype, thread_instance, db_session, abo
                     match_start_line, match_end_line = get_line_numbers_from_pos(content, match.start(), match.end())
 
                     entity = handle_distinct_entity(db_session, match_text, regex.entity_type_id)
-                    individual_entity = handle_individual_entity(db_session, entity, file_metadata, match_start_line, timestamp, regex.entity_type_id)
+                    individual_entity = handle_individual_entity(db_session, entity, file_metadata, match_start_line, timestamp, regex.entity_type_id, abort_flag)
 
                     if individual_entity:
                         handle_context_snippet(db_session, individual_entity, content, match_start_line, match_end_line)
