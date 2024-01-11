@@ -11,7 +11,7 @@ from logline_leviathan.database.database_manager import get_db_session, EntityTy
 from logline_leviathan.database.database_utility import DatabaseUtility
 from logline_leviathan.gui.checkbox_panel import *
 from logline_leviathan.gui.initui import initialize_main_window, set_dark_mode
-from logline_leviathan.gui.ui_helper import UIHelper
+from logline_leviathan.gui.ui_helper import UIHelper, format_time
 from logline_leviathan.exporter.html_export import generate_html_file
 from logline_leviathan.exporter.xlsx_export import generate_xlsx_file
 from logline_leviathan.exporter.nice_export import generate_niceoutput_file
@@ -88,10 +88,10 @@ class MainWindow(QWidget):
         db_path = 'entities.db'
         db_exists = os.path.exists(db_path)
         if not db_exists:
-            logging.debug("Database does not exist. Creating new database...")
+            logging.info("Database does not exist. Creating new database...")
             self.db_init_func()  # This should call create_database
         else:
-            logging.debug("Database exists.")
+            logging.info("Database exists.")
 
     def refreshApplicationState(self):
         self.db_session = get_db_session()
@@ -130,7 +130,7 @@ class MainWindow(QWidget):
         if self.processing_thread and self.processing_thread.isRunning():
             self.processing_thread.abort()
             self.processing_thread.wait() 
-            self.processing_thread = None
+            #self.processing_thread = None
             self.statusLabel.setText("   Analysis aborted by user.")
             logging.info(f"Analysis aborted manually.")
             self.updateCheckboxesBasedOnDatabase()
@@ -192,8 +192,10 @@ class MainWindow(QWidget):
     def showProcessingWarning(self):
         self.message("Operation Blocked", "Cannot perform this operation while file processing is running.")
 
-    def updateEntityRate(self, rate, total_entities):
-        self.entityRateLabel.setText(f"{rate:.2f} entities/second, Total: {total_entities}")
+    def updateEntityRate(self, entity_rate, total_entities, file_rate, total_files_processed, estimated_time):
+        formatted_time = format_time(estimated_time)
+        rate_text = f"{entity_rate:.2f} entities/second, Total: {total_entities} // {file_rate:.2f} files/second, Total: {total_files_processed}, Estimated Completion: {formatted_time}"
+        self.entityRateLabel.setText(rate_text)
 
     def openRegexLibrary(self):
         # The path to the 'data' directory is relative to the current working directory
@@ -207,7 +209,7 @@ class MainWindow(QWidget):
         session = get_db_session()
         entity_type_ids = session.query(DistinctEntitiesTable.entity_types_id).distinct().all()
         for entity_type_id in entity_type_ids:
-            logging.debug(f"@check_database_at_startup: entity_type_id:{entity_type_id[0]}, Data content: {session.query(DistinctEntitiesTable).filter(DistinctEntitiesTable.entity_types_id == entity_type_id[0]).first() is not None}")
+            logging.info(f"Check Database at startup: entity_type_id:{entity_type_id[0]}, Data content: {session.query(DistinctEntitiesTable).filter(DistinctEntitiesTable.entity_types_id == entity_type_id[0]).first() is not None}")
 
     def updateCheckboxesBasedOnDatabase(self):
         with session_scope() as session:

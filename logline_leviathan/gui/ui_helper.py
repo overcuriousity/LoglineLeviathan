@@ -61,3 +61,13 @@ class UIHelper():
                     writer.writerow([file])
         except Exception as e:
             logging.error(f"Error generating log file {file_path}: {e}")
+
+def format_time(seconds):
+    if seconds != seconds or seconds == float('inf'):  # Check for NaN and inf
+        return "N/A"
+
+    minutes = int(seconds // 60)
+    seconds = int(seconds % 60)
+    return f"{minutes} min {seconds} sec"
+
+

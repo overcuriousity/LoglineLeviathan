@@ -39,7 +39,7 @@ def process_text_file(file_path, file_mimetype, thread_instance, db_session, abo
                 timestamp = find_timestamp_before_match(full_content, match.start())
                 match_start_line, match_end_line = get_line_numbers_from_pos(content, match.start(), match.end())
                 entity = handle_distinct_entity(db_session, match_text, regex.entity_type_id)
-                individual_entity = handle_individual_entity(db_session, entity, file_metadata, match_start_line, timestamp, regex.entity_type_id, abort_flag)
+                individual_entity = handle_individual_entity(db_session, entity, file_metadata, match_start_line, timestamp, regex.entity_type_id, abort_flag, thread_instance)
                 
                 if individual_entity:
                     entity_count += 1
@@ -52,41 +52,6 @@ def process_text_file(file_path, file_mimetype, thread_instance, db_session, abo
         logging.error(f"Error processing text file {file_path}: {e}")
         return 0
 
-"""
-def process_text_file(file_path, file_mimetype, thread_instance, db_session):
-    try:
-        logging.info(f"Starting processing of file: {file_path}")
-        file_metadata = handle_file_metadata(db_session, file_path, file_mimetype)
-        content = read_file_content(file_path)
-        regex_patterns = db_session.query(EntityTypesTable).all()
-
-        entity_count = 0
-        full_content = ''.join(content)  # Join all lines into a single string
-        for regex in regex_patterns:
-            if not regex.regex_pattern.strip():
-                continue
-
-            for match in re.finditer(regex.regex_pattern, full_content):
-                match_text = match.group()
-                if not match_text.strip():
-                    continue
-                timestamp = find_timestamp_before_match(full_content, match.start())
-                # Determine start and end line numbers from match positions
-                match_start_line, match_end_line = get_line_numbers_from_pos(content, match.start(), match.end())
-                entity = handle_distinct_entity(db_session, match_text, regex.entity_type_id)
-                individual_entity = handle_individual_entity(db_session, entity, file_metadata, match_start_line, timestamp, regex.entity_type_id)
-                
-                if individual_entity:
-                    entity_count += 1
-                    handle_context_snippet(db_session, individual_entity, content, match_start_line, match_end_line)
-
-        thread_instance.update_status.emit(f"   Finished processing file: {file_path}")
-        return entity_count
-    except Exception as e:
-        db_session.rollback()
-        logging.error(f"Error processing file {file_path}: {e}")
-        return 0
-"""
 
 def get_line_numbers_from_pos(content, start_pos, end_pos):
     start_line = end_line = 0

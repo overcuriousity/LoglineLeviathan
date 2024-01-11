@@ -43,18 +43,16 @@ def handle_distinct_entity(db_session, match_text, entity_type_id):
 
 
 
-def handle_individual_entity(db_session, entity, file_metadata, line_number, timestamp, entity_types_id, abort_flag):
+def handle_individual_entity(db_session, entity, file_metadata, line_number, timestamp, entity_types_id, abort_flag, thread_instance):
     try:
         if abort_flag():
-            logging.info("Aborting entity handling due to user request.")
             return None
-        # Convert timestamp string to datetime object, if it's a valid string
         if timestamp and isinstance(timestamp, str):
             try:
                 timestamp = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
             except ValueError:
                 logging.warning(f"Invalid timestamp format: {timestamp}")
-                timestamp = None  # Set timestamp as None if the format is incorrect
+                timestamp = None
 
         individual_entity = db_session.query(EntitiesTable).filter_by(
             distinct_entities_id=entity.distinct_entities_id, 
@@ -67,16 +65,24 @@ def handle_individual_entity(db_session, entity, file_metadata, line_number, tim
                 distinct_entities_id=entity.distinct_entities_id,
                 file_id=file_metadata.file_id,
                 line_number=line_number,
-                entry_timestamp=timestamp,  # Use the datetime object
+                entry_timestamp=timestamp,
                 entity_types_id=entity_types_id
             )
             db_session.add(individual_entity)
             db_session.commit()
+
+            thread_instance.total_entities_count_lock.lock()  # Lock the mutex
+            try:
+                thread_instance.total_entities_count += 1
+            finally:
+                thread_instance.total_entities_count_lock.unlock()  # Unlock the mutex
+
+            thread_instance.calculate_and_emit_rate()
+
         return individual_entity
     except Exception as e:
         logging.error(f"Error handling individual entity in {file_metadata.file_path}, line {line_number}: {e}")
         return None
-
 
 
 def count_newlines(content, start, end):

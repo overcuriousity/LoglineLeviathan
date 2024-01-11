@@ -34,7 +34,6 @@ class CheckboxPanel(QWidget):
 
 
     def updateAvailableCheckboxes(self, regex_entities):
-        logging.debug("Updating available checkboxes")
         
         self.treeWidget.clear()  # Clear existing items
         parentItems = {}  # Dictionary to store parent tree items
@@ -63,12 +62,10 @@ class CheckboxPanel(QWidget):
 
 
     def updateCheckboxesBasedOnDatabase(self, db_session):
-        logging.debug("Updating checkboxes based on database content")
+        logging.info("Updating checkboxes based on database content")
         entity_type_id_to_name = {regex.entity_type_id: regex.gui_name for regex in db_session.query(EntityTypesTable).all()}
-        logging.debug(f"Regex ID to GUI Name Mapping: {entity_type_id_to_name}")
 
         used_ids = {d.entity_types_id for d in db_session.query(DistinctEntitiesTable.entity_types_id).distinct()}
-        logging.debug(f"Used entity_types_ids in entities: {used_ids}")
 
         def updateTreeItem(treeItem):
             entity_type_id = int(treeItem.entity_type_id)
