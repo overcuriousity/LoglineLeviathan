@@ -1,0 +1,8 @@
+sqlalchemy
+pyYAML
+PyQt5
+odfpy
+pandas
+python-magic
+openpyxl
+pdfplumber
