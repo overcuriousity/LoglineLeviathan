@@ -7,6 +7,12 @@
 ### Windows:
 
 Currently no .exe available yet. Follow the below Linux Instructions and adapt to your Windows shell.
+If you installed via pip install -r requirements.txt, you should run
+```
+pip uninstall python-magic
+pip install python-magic-bin==0.4.14
+```
+afterwards.
 
 > Important: The directories "data" with the entities.yaml and "output" need to be present.
 
