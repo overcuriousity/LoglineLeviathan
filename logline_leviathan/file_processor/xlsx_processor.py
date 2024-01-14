@@ -2,7 +2,7 @@ import logging
 import re
 from openpyxl import load_workbook
 from datetime import datetime
-from logline_leviathan.database.database_manager import EntityTypesTable, session_scope
+from logline_leviathan.database.database_manager import EntityTypesTable
 from logline_leviathan.file_processor.file_database_ops import handle_file_metadata, handle_individual_entity, handle_distinct_entity, handle_context_snippet
 
 def read_xlsx_content(file_path):
@@ -60,7 +60,7 @@ def process_xlsx_file(file_path, file_mimetype, thread_instance, db_session, abo
     try:
         logging.info(f"Starting processing of XLSX file: {file_path}")
         workbook = read_xlsx_content(file_path)
-        regex_patterns = db_session.query(EntityTypesTable).all()
+        regex_patterns = db_session.query(EntityTypesTable).filter(EntityTypesTable.regex_pattern != None, EntityTypesTable.regex_pattern != '').all()
 
         if workbook is None:
             return 0

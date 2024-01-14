@@ -1,9 +1,8 @@
 import re
-import os
 import logging
 from datetime import datetime
-from logline_leviathan.database.database_manager import EntityTypesTable, DistinctEntitiesTable, EntitiesTable, ContextTable, session_scope
-from logline_leviathan.file_processor.file_database_ops import handle_file_metadata, handle_individual_entity, handle_context_snippet, handle_distinct_entity, count_newlines
+from logline_leviathan.database.database_manager import EntityTypesTable
+from logline_leviathan.file_processor.file_database_ops import handle_file_metadata, handle_individual_entity, handle_context_snippet, handle_distinct_entity
 
 def read_file_content(file_path):
     try:
@@ -19,7 +18,7 @@ def process_text_file(file_path, file_mimetype, thread_instance, db_session, abo
         logging.info(f"Starting processing of text file: {file_path}")
         file_metadata = handle_file_metadata(db_session, file_path, file_mimetype)
         content = read_file_content(file_path)
-        regex_patterns = db_session.query(EntityTypesTable).all()
+        regex_patterns = db_session.query(EntityTypesTable).filter(EntityTypesTable.regex_pattern != None, EntityTypesTable.regex_pattern != '').all()
 
         entity_count = 0
         full_content = ''.join(content)  # Join all lines into a single string

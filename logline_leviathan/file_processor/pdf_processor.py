@@ -2,7 +2,7 @@ import logging
 import re
 import pdfplumber
 from datetime import datetime
-from logline_leviathan.database.database_manager import EntityTypesTable, session_scope
+from logline_leviathan.database.database_manager import EntityTypesTable
 from logline_leviathan.file_processor.file_database_ops import handle_file_metadata, handle_individual_entity, handle_distinct_entity, handle_context_snippet
 
 logging.getLogger('pdfminer').setLevel(logging.WARNING)
@@ -20,7 +20,7 @@ def process_pdf_file(file_path, file_mimetype, thread_instance, db_session, abor
     try:
         logging.info(f"Starting processing of PDF file: {file_path}")
         pages = read_pdf_content(file_path)
-        regex_patterns = db_session.query(EntityTypesTable).all()
+        regex_patterns = db_session.query(EntityTypesTable).filter(EntityTypesTable.regex_pattern != None, EntityTypesTable.regex_pattern != '').all()
 
         if pages is None:
             return 0
