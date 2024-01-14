@@ -1,6 +1,6 @@
 import pandas as pd
 from PyQt5.QtCore import Qt
-from sqlalchemy import func, cast, String, literal_column, distinct
+from sqlalchemy import func, cast, String, distinct
 from logline_leviathan.database.database_manager import ContextTable, EntityTypesTable, DistinctEntitiesTable, EntitiesTable, FileMetadata
 
 def generate_dataframe(db_session, tree_items, context_selection):

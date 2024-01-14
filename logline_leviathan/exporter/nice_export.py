@@ -1,5 +1,4 @@
 import re
-import pandas as pd
 from logline_leviathan.exporter.export_constructor import generate_dataframe
 
 def create_regex_pattern_from_entity(entity):

@@ -1,4 +1,4 @@
-import pandas as pd
+
 from logline_leviathan.exporter.export_constructor import generate_dataframe
 import re
 

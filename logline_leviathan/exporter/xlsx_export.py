@@ -1,8 +1,6 @@
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
-import pandas as pd
 from logline_leviathan.exporter.export_constructor import generate_dataframe
-import re
 
 
 def generate_xlsx_file(output_file_path, db_session, checkboxes, context_selection, only_crossmatches):
