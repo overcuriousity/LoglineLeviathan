@@ -1,16 +1,16 @@
 import sys
 import os
 import logging
-import subprocess
 import shutil
-from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QFileDialog, QLabel
+from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QFileDialog, QLabel, QDialog, QDialogButtonBox, QGroupBox, QRadioButton
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtCore import QUrl
 from logline_leviathan.file_processor.file_processor_thread import FileProcessorThread
-from logline_leviathan.database.database_manager import get_db_session, EntityTypesTable, DistinctEntitiesTable, EntitiesTable, session_scope, create_database, populate_entity_types_table
+from logline_leviathan.database.database_manager import get_db_session, EntityTypesTable, EntitiesTable, session_scope
 from logline_leviathan.database.database_utility import DatabaseUtility
+from logline_leviathan.database.database_operations import DatabaseOperations
 from logline_leviathan.gui.checkbox_panel import *
-from logline_leviathan.gui.initui import initialize_main_window, set_dark_mode
+from logline_leviathan.gui.initui import initialize_main_window
 from logline_leviathan.gui.ui_helper import UIHelper, format_time
 from logline_leviathan.exporter.html_export import generate_html_file
 from logline_leviathan.exporter.xlsx_export import generate_xlsx_file
@@ -25,7 +25,9 @@ class MainWindow(QWidget):
         super().__init__()
         logging.basicConfig(level=logging.DEBUG)
         self.app = app
+        self.ui_helper = UIHelper(self)
         self.db_init_func = db_init_func
+        self.database_operations = DatabaseOperations(self, db_init_func)
         self.directory = directory
         self.filePaths = []
         self.outputDir = None
@@ -34,14 +36,15 @@ class MainWindow(QWidget):
         self.processing_thread = None
         self.checkboxPanel = CheckboxPanel()
 
-        self.ensureDatabaseExists()
+
+        self.database_operations.ensureDatabaseExists()
 
         self.initUI()
 
         self.ui_helper = UIHelper(self)
         self.database_utility = DatabaseUtility(self)
 
-        self.loadRegexFromYAML()
+        #self.loadRegexFromYAML()
         # Load data and update checkboxes
         self.refreshApplicationState()
 
@@ -71,32 +74,12 @@ class MainWindow(QWidget):
         self.ui_helper.clearFileSelection()
 
 
-    def loadRegexFromYAML(self):
-        yaml_path = 'data/entities.yaml'
-        try:
-            with session_scope() as session:
-                populate_entity_types_table(session, yaml_path) 
-
-                regex_entities = session.query(EntityTypesTable).all()
-                self.checkboxPanel.updateAvailableCheckboxes(regex_entities)
-
-        except Exception as e:
-            logging.error(f"Error loading regex from YAML: {e}")
-
-
-    def ensureDatabaseExists(self):
-        db_path = 'entities.db'
-        db_exists = os.path.exists(db_path)
-        if not db_exists:
-            logging.info("Database does not exist. Creating new database...")
-            self.db_init_func()  # This should call create_database
-        else:
-            logging.info("Database exists.")
 
     def refreshApplicationState(self):
         self.db_session = get_db_session()
-        self.loadRegexFromYAML()
-        self.updateCheckboxesBasedOnDatabase()
+        yaml_data = self.database_operations.loadRegexFromYAML()
+        self.database_operations.populate_entity_types_table_from_yaml(yaml_data)
+        self.updateCheckboxes()
 
 
     def purgeDatabase(self):
@@ -133,7 +116,7 @@ class MainWindow(QWidget):
             #self.processing_thread = None
             self.statusLabel.setText("   Analysis aborted by user.")
             logging.info(f"Analysis aborted manually.")
-            self.updateCheckboxesBasedOnDatabase()
+            self.refreshApplicationState()
 
     def onProcessingFinished(self):
         if self.processing_thread:
@@ -152,7 +135,7 @@ class MainWindow(QWidget):
             if unsupported_files_count > 0:
                 summary += f"\nSkipped {unsupported_files_count} unsupported files."
                 link_label = QLabel(f'<a href="#">Open list of all unsupported files...</a>')
-                link_label.linkActivated.connect(lambda: self.openFile(unprocessed_files_log))
+                link_label.linkActivated.connect(lambda: self.ui_helper.openFile(unprocessed_files_log))
                 self.message("Processing Summary", summary, link_label)
             else:
                 self.message("Processing Summary", summary)
@@ -198,22 +181,15 @@ class MainWindow(QWidget):
         self.entityRateLabel.setText(rate_text)
 
     def openRegexLibrary(self):
-        # The path to the 'data' directory is relative to the current working directory
         path_to_yaml = os.path.join(os.getcwd(), 'data', 'entities.yaml')
         if os.path.exists(path_to_yaml):
-            QDesktopServices.openUrl(QUrl.fromLocalFile(path_to_yaml))
+            self.ui_helper.openFile(path_to_yaml)  # Call openFile method on the UIHelper instance
         else:
-            logging.self.statusLabel.setText("   entities.yaml not found in the data directory.")
+            self.statusLabel.setText("   entities.yaml not found in the data directory.")
 
-    def check_database_at_startup(self):
-        session = get_db_session()
-        entity_type_ids = session.query(DistinctEntitiesTable.entity_types_id).distinct().all()
-        for entity_type_id in entity_type_ids:
-            logging.info(f"Check Database at startup: entity_type_id:{entity_type_id[0]}, Data content: {session.query(DistinctEntitiesTable).filter(DistinctEntitiesTable.entity_types_id == entity_type_id[0]).first() is not None}")
-
-    def updateCheckboxesBasedOnDatabase(self):
+    def updateCheckboxes(self):
         with session_scope() as session:
-            self.checkboxPanel.updateCheckboxesBasedOnDatabase(session)
+            self.checkboxPanel.updateCheckboxes(session)
 
     def updateOutputFilePathLabel(self):
         outputDirPath = os.path.dirname(self.outputFilePath)
@@ -222,22 +198,7 @@ class MainWindow(QWidget):
 
     def openOutputFilepath(self):
         outputDirPath = os.path.dirname(self.outputFilePath)
-        self.openFile(outputDirPath)
-
-        if sys.platform == 'win32':
-            os.startfile(outputDirPath)
-        elif sys.platform == 'darwin':  # macOS
-            subprocess.Popen(['open', outputDirPath])
-        else:  # linux variants
-            subprocess.Popen(['xdg-open', outputDirPath])
-
-    def openFile(self, file_path):
-        if sys.platform == 'win32':
-            os.startfile(file_path)
-        elif sys.platform == 'darwin':  # macOS
-            subprocess.Popen(['open', file_path])
-        else:  # Linux and other Unix-like systems
-            subprocess.Popen(['xdg-open', file_path])
+        self.ui_helper.openFile(outputDirPath)
 
     def selectOutputFile(self):
         options = QFileDialog.Options()
@@ -319,8 +280,6 @@ class MainWindow(QWidget):
         for i in range(self.checkboxPanel.treeWidget.topLevelItemCount()):
             traverseTreeItems(self.checkboxPanel.treeWidget.topLevelItem(i))
         return selected_checkboxes
-
-
 
     def message(self, title, text, extra_widget=None):
         msgBox = QMessageBox()

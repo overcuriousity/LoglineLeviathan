@@ -1,9 +1,11 @@
-from PyQt5.QtWidgets import QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtCore import QUrl
 import os
 import logging
 import csv
+import sys 
+import subprocess
 
 class UIHelper():
     def __init__(self, main_window):
@@ -62,6 +64,14 @@ class UIHelper():
         except Exception as e:
             logging.error(f"Error generating log file {file_path}: {e}")
 
+    def openFile(self, file_path):
+        if sys.platform == 'win32':
+            os.startfile(file_path)
+        elif sys.platform == 'darwin':  # macOS
+            subprocess.Popen(['open', file_path])
+        else:  # Linux and other Unix-like systems
+            subprocess.Popen(['xdg-open', file_path])
+
 def format_time(seconds):
     if seconds != seconds or seconds == float('inf'):  # Check for NaN and inf
         return "N/A"
@@ -69,5 +79,7 @@ def format_time(seconds):
     minutes = int(seconds // 60)
     seconds = int(seconds % 60)
     return f"{minutes} min {seconds} sec"
+
+
 
 

@@ -1,10 +1,9 @@
-from PyQt5.QtWidgets import QWidget, QScrollArea, QVBoxLayout, QCheckBox, QToolTip, QSizePolicy, QTreeWidget, QTreeWidgetItem
-from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QToolTip, QTreeWidget, QTreeWidgetItem
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 import logging
-import os
 from logline_leviathan.database.database_manager import EntitiesTable, DistinctEntitiesTable, EntityTypesTable
-
+from sqlalchemy import func
 
 class CustomCheckBox(QCheckBox):
     def __init__(self, *args, **kwargs):
@@ -25,74 +24,81 @@ class CheckboxPanel(QWidget):
         self.treeWidget = QTreeWidget()
         self.treeWidget.setHeaderHidden(True)  # Hide the header
 
-        # Create a Scroll Area and set its widget as the Tree Widget
-        self.scrollArea = QScrollArea(self)
-        self.scrollArea.setWidgetResizable(True)
-        self.scrollArea.setWidget(self.treeWidget)
+        layout.addWidget(self.treeWidget)
 
-        layout.addWidget(self.scrollArea)
+    def _addChildren(self, parentItem, parent_entity_type, db_session, used_ids):
+        child_entity_types = db_session.query(EntityTypesTable).filter(EntityTypesTable.parent_type == parent_entity_type).all()
+        for child_entity_type in child_entity_types:
+            count = db_session.query(EntitiesTable).filter(EntitiesTable.entity_types_id == child_entity_type.entity_type_id).count()
+            text = f"{child_entity_type.gui_name} ({count} occurrences found)"
+            childItem = QTreeWidgetItem(parentItem)
+            childItem.setFlags(childItem.flags() | Qt.ItemIsUserCheckable)
+            childItem.setCheckState(0, Qt.Unchecked)
+            childItem.setText(0, text)
+            childItem.setToolTip(0, child_entity_type.gui_tooltip)
+            childItem.entity_type_id = child_entity_type.entity_type_id
+            childItem.entity_type = child_entity_type.entity_type
+
+            # Set color and enable/disable based on usage
+            childItem.setForeground(0, QColor('green' if child_entity_type.entity_type_id in used_ids else 'white'))
+            childItem.setDisabled(child_entity_type.entity_type_id not in used_ids)
+
+            # Recursive call to add children of this child
+            self._addChildren(childItem, child_entity_type.entity_type, db_session, used_ids)
 
 
-    def updateAvailableCheckboxes(self, regex_entities):
-        
-        self.treeWidget.clear()  # Clear existing items
-        parentItems = {}  # Dictionary to store parent tree items
+    def updateCheckboxes(self, db_session):
+        logging.info("Updating checkboxes with database content")
 
-        for entity in regex_entities:
-            parent_type = entity.parent_type if hasattr(entity, 'parent_type') else 'root'
+        try:
+            # Query database for entity types
+            entity_types = db_session.query(EntityTypesTable).all()
+            logging.debug(f"Number of entity types found: {len(entity_types)}")
+            for entity_type in entity_types[:5]:  # Log first 5 entity types
+                logging.debug(f"Entity Type: {entity_type}, Parent: {entity_type.parent_type}")
+            # Query used entity type ids
+            used_ids = {d.entity_types_id for d in db_session.query(DistinctEntitiesTable.entity_types_id).distinct()}
+            logging.debug(f"Used entity type ids: {used_ids}")
+            # Clear existing items
+            self.treeWidget.clear()
+            rootItems = {}
 
-            treeItem = QTreeWidgetItem()
-            treeItem.setFlags(treeItem.flags() | Qt.ItemIsUserCheckable)  # Add checkbox
-            treeItem.setText(0, entity.gui_name)
-            treeItem.setCheckState(0, Qt.Unchecked)  # Default state
-            treeItem.setToolTip(0, entity.gui_tooltip)  # Set tooltip for the item
-            treeItem.entity_type_id = entity.entity_type_id  # Store the entity_type_id
-            treeItem.entity_type = entity.entity_type  # Store the entity_type
+            # Construct hierarchical tree structure
+            for entity_type in entity_types:
+                logging.debug(f"entered loop for constructing the tree structure for entity type: {entity_type} and its parent: {entity_type.parent_type}")
+                if entity_type.parent_type != 'root':  # Skip non-root items
+                    logging.debug(f"Skipping non-root item: {entity_type}")
+                    continue
 
-            if parent_type == 'root':
+                count = db_session.query(EntitiesTable).filter(EntitiesTable.entity_types_id == entity_type.entity_type_id).count()
+                text = f"{entity_type.gui_name}"
+                treeItem = QTreeWidgetItem()
+                #treeItem.setText(0, text)
+                treeItem.setToolTip(0, entity_type.gui_tooltip)
+                treeItem.entity_type_id = entity_type.entity_type_id
+                treeItem.entity_type = entity_type.entity_type
+                if entity_type.regex_pattern:
+                    treeItem.setFlags(treeItem.flags() | Qt.ItemIsUserCheckable)
+                    treeItem.setCheckState(0, Qt.Unchecked)
+                    text = f"{entity_type.gui_name} ({count} occurrences found)"
+                treeItem.setText(0, text)
+                # Add item to tree widget
                 self.treeWidget.addTopLevelItem(treeItem)
-                parentItems[entity.entity_type] = treeItem
-            else:
-                parentItem = parentItems.get(parent_type)
-                if parentItem:
-                    parentItem.addChild(treeItem)
+                rootItems[entity_type.entity_type_id] = treeItem
 
-        self.treeWidget.expandAll()  # Optional: Expand all tree items
+                # Call recursive function to add children
+                self._addChildren(treeItem, entity_type.entity_type, db_session, used_ids)
+                logging.debug(f"Entity Type: {entity_type.gui_name}, Parent: {entity_type.parent_type}")
+            # Optionally expand all tree items
+            self.treeWidget.expandAll()
 
-
-
-    def updateCheckboxesBasedOnDatabase(self, db_session):
-        logging.info("Updating checkboxes based on database content")
-        entity_type_id_to_name = {regex.entity_type_id: regex.gui_name for regex in db_session.query(EntityTypesTable).all()}
-
-        used_ids = {d.entity_types_id for d in db_session.query(DistinctEntitiesTable.entity_types_id).distinct()}
-
-        def updateTreeItem(treeItem):
-            entity_type_id = int(treeItem.entity_type_id)
-            count = db_session.query(EntitiesTable).filter(EntitiesTable.entity_types_id == entity_type_id).count()
-            treeItem.setText(0, f"{entity_type_id_to_name[entity_type_id]} ({count} occurrences found)")
-            
-            if count > 0:
-                treeItem.setForeground(0, QColor('green'))
-            else:
-                treeItem.setForeground(0, QColor('white'))
-            
-            treeItem.setDisabled(entity_type_id not in used_ids)
-
-            # Update child items
-            for i in range(treeItem.childCount()):
-                updateTreeItem(treeItem.child(i))
-
-        # Update all top-level items
-        for i in range(self.treeWidget.topLevelItemCount()):
-            updateTreeItem(self.treeWidget.topLevelItem(i))
+        except Exception as e:
+            logging.error("Error updating checkboxes", exc_info=True)
 
     def filterCheckboxes(self, filter_text):
         def filterTreeItem(treeItem):
-            # Check if filter text is in the tree item
             match = any(filter_text.lower() in treeItem.text(0).lower() for keyword in ['gui_name', 'entity_type', 'gui_tooltip'])
             treeItem.setHidden(not match)
-
             # Do the same for child items
             for j in range(treeItem.childCount()):
                 filterTreeItem(treeItem.child(j))

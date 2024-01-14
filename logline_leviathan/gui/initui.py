@@ -1,10 +1,9 @@
 import os
-from PyQt5.QtWidgets import (QGridLayout, QScrollArea, QPushButton, QLabel, QHBoxLayout, QApplication, QWidget,
-                             QFileDialog, QVBoxLayout, QProgressBar, QComboBox, QSpacerItem,
-                             QSizePolicy, QCheckBox, QMessageBox, QListWidget, QListWidgetItem, QGroupBox, QLineEdit)
+from PyQt5.QtWidgets import (QGridLayout, QPushButton, QLabel, QHBoxLayout, QApplication,
+                             QVBoxLayout, QProgressBar, 
+                             QCheckBox, QListWidget, QGroupBox, QLineEdit)
 from PyQt5.QtGui import QPalette, QColor, QPixmap
 from PyQt5.QtCore import Qt
-from .checkbox_panel import CheckboxPanel
 
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
@@ -328,7 +327,7 @@ def initialize_main_window(main_window, app):
 
         main_window.setLayout(main_window.mainLayout)
 
-        main_window.updateCheckboxesBasedOnDatabase()
+        #main_window.refreshApplicationState()
 
 
         main_window.update()
