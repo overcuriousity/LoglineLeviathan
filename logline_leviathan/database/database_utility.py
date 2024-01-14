@@ -2,7 +2,7 @@ import shutil
 import logging
 import time
 import os
-from PyQt5.QtWidgets import QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QFileDialog
 from sqlalchemy.exc import SQLAlchemyError
 from logline_leviathan.database.database_manager import get_db_session
 
