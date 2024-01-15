@@ -40,3 +40,27 @@ mailaddr:
   gui_tooltip: Outputs any possible email-addresses.
   parent_type: category_communication
   regex_pattern: \b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b
+macaddr:
+  entity_type: macaddr
+  gui_name: MAC Address
+  gui_tooltip: Outputs any possible MAC addresses.
+  parent_type: category_networking
+  regex_pattern: \b(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\b
+#category_webserver:
+#  entity_type: category_webserver
+#  gui_name: Webserver Log Item
+#  gui_tooltip: Webserver related entities.
+#  parent_type: root
+#  regex_pattern: null
+#apache_access_log_entry:
+#  entity_type: apache_access_log_entry
+#  gui_name: Apache Access Log Entry
+#  gui_tooltip: Outputs any Apache access log entries.
+#  parent_type: category_webserver
+#  regex_pattern: (?P<ip>.*?) (?P<remote_log_name>.*?) (?P<userid>.*?) \[(?P<date>.*?)(?= ) (?P<timezone>.*?)\] \"(?P<request_method>.*?) (?P<path>.*?)(?P<request_version> HTTP/.*)?\" (?P<status>.*?) (?P<length>.*?) \"(?P<referrer>.*?)\" \"(?P<user_agent>.*?)\" (?P<session_id>.*?) (?P<generation_time_micro>.*?) (?P<virtual_host>.*)
+#apache_log_GET:
+#  entity_type: apache_log_GET
+#  gui_name: Apache Log GET Request
+#  gui_tooltip: Outputs any Apache GET requests.
+#  parent_type: apache_access_log_entry
+#  regex_pattern: \bGET (?P<path>.*?) HTTP/1.1\b
