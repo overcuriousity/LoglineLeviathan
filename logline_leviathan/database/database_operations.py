@@ -132,45 +132,65 @@ class DatabaseOperations:
         return None
 
 
-    def populate_entity_types_table_from_yaml(self, yaml_data):
-        #logging.debug(f"called populate_entity_types_table_from_yaml with yaml_data: {yaml_data}")
+    def populate_and_update_entities_from_yaml(self, yaml_data):
         with session_scope() as session:
-            if session.query(EntityTypesTable).count() == 0:
-                logging.info("EntityTypes table is empty. Populating from YAML data.")
-                for entity_name, entity_data in yaml_data.items():
-                    regex_pattern = entity_data.get('regex_pattern', '')
-                    new_entity = EntityTypesTable(
-                        entity_type=entity_data['entity_type'],
-                        gui_name=entity_data['gui_name'],
-                        gui_tooltip=entity_data['gui_tooltip'],
-                        parent_type=entity_data['parent_type'],
-                        regex_pattern=regex_pattern
-                    )
-                    session.add(new_entity)
-                session.commit()
-            else:
-                db_entities = session.query(EntityTypesTable).all()
-                db_entity_dict = {entity.entity_type: entity for entity in db_entities}
-                for entity_name, entity_data in yaml_data.items():
-                    regex_pattern = entity_data.get('regex_pattern', '')
-                    entity_type = entity_data['entity_type']
-                    db_entity = db_entity_dict.get(entity_type)
-                    if db_entity and not self.is_entity_consistent(db_entity, entity_data):
+            db_entities = session.query(EntityTypesTable).all()
+            db_entity_dict = {entity.entity_type: entity for entity in db_entities}
+
+            for entity_name, entity_data in yaml_data.items():
+                entity_type = entity_data['entity_type']
+                db_entity = db_entity_dict.get(entity_type)
+
+                if db_entity is None:
+                    db_entity = self.find_potentially_modified_entity(db_entities, entity_data)
+
+                if db_entity:
+                    if self.is_duplicate_or_inconsistent(db_entity, entity_data, db_entities):
+                        logging.warning(f"Issue found with entity {db_entity} and {entity_data}. Handling resolution.")
                         resolution = self.show_resolve_inconsistencies_dialog(db_entity, entity_data)
                         if resolution:
-                            self.apply_resolution([resolution], session)
-                    elif not db_entity:
-                        new_entity = EntityTypesTable(
-                            entity_type=entity_data['entity_type'],
-                            gui_name=entity_data['gui_name'],
-                            gui_tooltip=entity_data['gui_tooltip'],
-                            parent_type=entity_data['parent_type'],
-                            regex_pattern=regex_pattern
-                        )
-                        session.add(new_entity)
-                        session.commit()
+                            self.apply_resolution([(resolution, db_entity)], session)  # Pass db_entity as part of the resolution
+                    else:
+                        for key, value in entity_data.items():
+                            setattr(db_entity, key, value)
+                else:
+                    new_entity = EntityTypesTable(**entity_data)
+                    session.add(new_entity)
+
+            session.commit()
+
+    def find_potentially_modified_entity(self, db_entities, yaml_entity):
+        for db_ent in db_entities:
+            if any(
+                getattr(db_ent, key) == yaml_entity[key] 
+                for key in ['entity_type', 'gui_name', 'gui_tooltip', 'regex_pattern'] 
+                if yaml_entity[key]
+            ):
+                return db_ent
+        return None
 
 
+
+    def is_duplicate_or_inconsistent(self, db_entity, yaml_entity, db_entities):
+        if db_entity:
+            # Check for inconsistency in existing entity
+            for key, value in yaml_entity.items():
+                if getattr(db_entity, key, None) != value and value is not None:
+                    return True
+
+        # Check for duplicate across all entities
+        for db_ent in db_entities:
+            if db_ent.entity_type == yaml_entity['entity_type']:
+                continue
+
+            if any(
+                getattr(db_ent, key) == yaml_entity[key] and yaml_entity[key] is not None
+                for key in ['entity_type', 'gui_name', 'gui_tooltip', 'regex_pattern']
+            ):
+                logging.debug(f"Found duplicate entity: {db_ent}")
+                return True
+
+        return False
 
 
 
@@ -179,12 +199,38 @@ class DatabaseOperations:
         for key, value in yaml_entity.items():
             setattr(db_entity, key, value)
 
-    def is_entity_consistent(self, db_entity, yaml_entity):
-        # Compare all relevant fields
-        return all(getattr(db_entity, key) == yaml_entity[key] for key in ['regex_pattern', 'entity_type', 'gui_name', 'gui_tooltip', 'parent_type'])
 
 
     def apply_resolution(self, resolutions, session):
+        with open('./data/entities.yaml', 'r') as file:
+            yaml_data = yaml.safe_load(file)
+
+        for (resolution, entity), db_entity in resolutions:
+            if resolution == 'yaml':
+                logging.debug(f"Resolving YAML entity: {entity} with resolution: yaml and db_entity: {db_entity}")
+                if db_entity:
+                    foreign_keys = self.capture_foreign_keys(db_entity.entity_type_id, session)
+                    session.delete(db_entity)
+                
+                new_entity = EntityTypesTable(**entity)
+                session.add(new_entity)
+                session.flush()
+
+
+            elif resolution == 'db':
+                if entity:  # Existing database entity is chosen
+                    yaml_data[entity.entity_type] = {
+                        'entity_type': entity.entity_type,
+                        'gui_name': entity.gui_name,
+                        'gui_tooltip': entity.gui_tooltip,
+                        'parent_type': entity.parent_type,
+                        'regex_pattern': entity.regex_pattern
+                    }
+
+        with open('./data/entities.yaml', 'w') as file:
+            yaml.dump(yaml_data, file)
+
+    def apply_resolution1(self, resolutions, session):
         with open('./data/entities.yaml', 'r') as file:
             yaml_data = yaml.safe_load(file)
 
