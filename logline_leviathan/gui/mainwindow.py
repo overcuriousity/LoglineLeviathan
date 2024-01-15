@@ -78,7 +78,9 @@ class MainWindow(QWidget):
     def refreshApplicationState(self):
         self.db_session = get_db_session()
         yaml_data = self.database_operations.loadRegexFromYAML()
-        self.database_operations.populate_entity_types_table_from_yaml(yaml_data)
+        #self.database_operations.populate_entity_types_table_from_yaml(yaml_data)
+        self.database_operations.populate_and_update_entities_from_yaml(yaml_data)
+
         self.updateCheckboxes()
 
 

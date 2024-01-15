@@ -53,21 +53,14 @@ class CheckboxPanel(QWidget):
         try:
             # Query database for entity types
             entity_types = db_session.query(EntityTypesTable).all()
-            logging.debug(f"Number of entity types found: {len(entity_types)}")
-            for entity_type in entity_types[:5]:  # Log first 5 entity types
-                logging.debug(f"Entity Type: {entity_type}, Parent: {entity_type.parent_type}")
-            # Query used entity type ids
             used_ids = {d.entity_types_id for d in db_session.query(DistinctEntitiesTable.entity_types_id).distinct()}
-            logging.debug(f"Used entity type ids: {used_ids}")
             # Clear existing items
             self.treeWidget.clear()
             rootItems = {}
 
             # Construct hierarchical tree structure
             for entity_type in entity_types:
-                logging.debug(f"entered loop for constructing the tree structure for entity type: {entity_type} and its parent: {entity_type.parent_type}")
                 if entity_type.parent_type != 'root':  # Skip non-root items
-                    logging.debug(f"Skipping non-root item: {entity_type}")
                     continue
 
                 count = db_session.query(EntitiesTable).filter(EntitiesTable.entity_types_id == entity_type.entity_type_id).count()
@@ -88,7 +81,6 @@ class CheckboxPanel(QWidget):
 
                 # Call recursive function to add children
                 self._addChildren(treeItem, entity_type.entity_type, db_session, used_ids)
-                logging.debug(f"Entity Type: {entity_type.gui_name}, Parent: {entity_type.parent_type}")
             # Optionally expand all tree items
             self.treeWidget.expandAll()
 

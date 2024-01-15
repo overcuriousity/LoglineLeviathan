@@ -309,7 +309,7 @@ def initialize_main_window(main_window, app):
         bottomLayout = QHBoxLayout()
         
         # Link to GitHub Repo
-        main_window.githubLink = QLabel('<a href="https://github.com/overcuriousity/LoglineLeviathan">GitHub</a>', main_window)
+        main_window.githubLink = QLabel('<a href="https://c.mikoshi.de/apps/forms/s/JEioiy6WBpRTKJsDLEeRqN2E">Feedback-Link</a>', main_window)
         main_window.githubLink.setOpenExternalLinks(True)
         bottomLayout.addWidget(main_window.githubLink)
 
