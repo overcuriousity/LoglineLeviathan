@@ -2,7 +2,7 @@ import os
 from PyQt5.QtWidgets import (QGridLayout, QPushButton, QLabel, QHBoxLayout, QApplication,
                              QVBoxLayout, QProgressBar, 
                              QCheckBox, QListWidget, QGroupBox, QLineEdit)
-from PyQt5.QtGui import QPalette, QColor, QPixmap
+from PyQt5.QtGui import  QColor, QPixmap #QPalette removed
 from PyQt5.QtCore import Qt
 
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
@@ -10,27 +10,11 @@ QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
 
 
-def set_dark_mode(app):
-    palette = QPalette()
-    palette.setColor(QPalette.Window, QColor(63, 63, 73))
-    palette.setColor(QPalette.WindowText, Qt.white)
-    palette.setColor(QPalette.Base, QColor(25, 25, 25))
-    palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-    palette.setColor(QPalette.ToolTipBase, Qt.white)
-    palette.setColor(QPalette.ToolTipText, Qt.black)
-    palette.setColor(QPalette.Text, Qt.white)
-    palette.setColor(QPalette.Button, QColor(53, 53, 53))
-    palette.setColor(QPalette.ButtonText, Qt.white)
-    palette.setColor(QPalette.BrightText, Qt.red)
-    palette.setColor(QPalette.Link, QColor(42, 130, 218))
-    palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-    palette.setColor(QPalette.HighlightedText, Qt.black)
-    app.setPalette(palette)
-    button_style = "QPushButton { background-color: #353535; color: white; }"
-    app.setStyleSheet(button_style)
+
+
 
 def initialize_main_window(main_window, app):
-        set_dark_mode(app)
+        #set_dark_mode(app)
         main_window.setWindowTitle('Logline Leviathan')
         main_window.setGeometry(800, 1000, 800, 1000)
         main_window.mainLayout = QVBoxLayout(main_window)
@@ -40,11 +24,73 @@ def initialize_main_window(main_window, app):
         pixmap = QPixmap(os.path.join('logline_leviathan', 'gui', 'logo.png'))
         scaled_pixmap = pixmap.scaled(400, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         logoLabel = QLabel(main_window)
-        #pixmap = QPixmap(os.path.join('logline_leviathan', 'gui', 'logo.png'))
-        #logoLabel.setPixmap(pixmap.scaled(400, 1000, Qt.KeepAspectRatio))
         logoLabel.setPixmap(scaled_pixmap)
-        main_window.mainLayout.addWidget(logoLabel, alignment=Qt.AlignTop | Qt.AlignRight)
 
+        # Version label
+        versionLabel = QLabel("LoglineLeviathan v0.1.0", main_window)  # Replace X.X.X with your actual version number
+        versionLabel.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
+        # Horizontal layout
+        hbox = QHBoxLayout()
+        hbox.addWidget(versionLabel)  # Add version label to the left
+        hbox.addStretch()  # Add stretchable space between the version label and logo
+        hbox.addWidget(logoLabel, alignment=Qt.AlignRight)  # Add logo label to the right
+
+        # Add horizontal layout to the main layout
+        main_window.mainLayout.addLayout(hbox)
+
+        stylesheet = """
+        /* Style for the main window */
+        QWidget {
+            background-color: #282C34; /* Dark grey background */
+            color: white; /* White text */
+        }
+
+        /* Style for buttons */
+        QPushButton {
+            background-color: #4B5563; /* Dark grey background */
+            color: white; /* White text */
+            border-style: outset;
+            border-width: 2px;
+            border-radius: 1px; /* Rounded corners */
+            border-color: #4A4A4A;
+            padding: 6px;
+            min-width: 60px;
+            min-height: 20px;
+        }
+
+        QPushButton:hover {
+            background-color: #6E6E6E; /* Slightly lighter grey on hover */
+        }
+
+        QPushButton:pressed {
+            background-color: #484848; /* Even darker grey when pressed */
+        }
+        """
+        
+        highlited_button_style = """
+        QPushButton {
+            background-color: #3C8CCE; /* Lighter blue background */
+            color: white; /* White text */
+            border-style: outset;
+            border-width: 2px;
+            border-radius: 1px; /* Rounded corners */
+            border-color: #4A4A4A;
+            padding: 6px;
+            min-width: 60px;
+            min-height: 20px;
+        }
+
+        QPushButton:hover {
+            background-color: #7EC0EE; /* Even lighter blue on hover */
+        }
+
+        QPushButton:pressed {
+            background-color: #4A86E8; /* Slightly darker blue when pressed */
+        }
+        """
+
+        main_window.setStyleSheet(stylesheet)
 
         # Update function for output format selection label with custom text and line breaks
         def update_output_format_label(current):
@@ -72,11 +118,25 @@ def initialize_main_window(main_window, app):
 
         
         # Data Ingestion Settings Label
-        main_window.dataIngestionLabel = QLabel('   1. Start with adding the Files to import or specify a database.\n   2. Start File Analysis and populate Database.\n   3. Specify Export Options and Output Format, then Start Export.')
+        main_window.dataIngestionLabel = QLabel('   Welcome to the LogLineAnalyzer.\n   Start by using the Quick-Start Button, which allows the selection of Directories to analyze.\n   Immediately after Selection, the Analysis will start to recursively parse the files with properties set in the RegexLibrary.')
         main_window.dataIngestionLabel.setWordWrap(True)
         main_window.dataIngestionLabel.setMinimumHeight(60)
-        main_window.dataIngestionLabel.setStyleSheet("QLabel { background-color: #333343; color: white; }")
-        main_window.mainLayout.addWidget(main_window.dataIngestionLabel)
+        main_window.dataIngestionLabel.setStyleSheet("QLabel { background-color: #3C4043; color: white; }")
+
+        # Quick Start Button
+        quickStartButton = QPushButton('Quick Start', main_window)
+        quickStartButton.setStyleSheet(highlited_button_style)
+        quickStartButton.setFixedSize(270, 55)
+        quickStartButton.clicked.connect(main_window.quickStartWorkflow)  
+
+        # Horizontal layout for label and button
+        hBoxLayout = QHBoxLayout()
+        hBoxLayout.addWidget(quickStartButton)
+        hBoxLayout.addWidget(main_window.dataIngestionLabel)
+        
+
+        # Add horizontal layout to the main layout
+        main_window.mainLayout.addLayout(hBoxLayout)
 
 
         # Grid Layout for Top Buttons
@@ -92,7 +152,7 @@ def initialize_main_window(main_window, app):
         main_window.clearSelectionButton = QPushButton('Clear all Files from Selection', main_window)
         main_window.clearSelectionButton.clicked.connect(lambda: main_window.clearFileSelection())
 
-        main_window.createDbButton = QPushButton('Delete & Create Fresh Database', main_window)
+        main_window.createDbButton = QPushButton('Create empty local Database', main_window)
         main_window.createDbButton.clicked.connect(main_window.purgeDatabase)
 
         main_window.importDbButton = QPushButton('Select existing Database', main_window)
@@ -105,6 +165,7 @@ def initialize_main_window(main_window, app):
         main_window.inspectRegexButton.clicked.connect(main_window.openRegexLibrary)
 
         main_window.processButton = QPushButton('Start/Resume File Analysis', main_window)
+        main_window.processButton.setStyleSheet(highlited_button_style)
         main_window.processButton.clicked.connect(main_window.processFiles)
 
         main_window.abortAnalysisButton = QPushButton('Abort running Analysis', main_window)
@@ -157,7 +218,7 @@ def initialize_main_window(main_window, app):
         main_window.statusLabel = QLabel('   READY TO OPERATE // START PROCESSING', main_window)
         main_window.statusLabel.setWordWrap(True)
         main_window.statusLabel.setMinimumHeight(40)
-        main_window.statusLabel.setStyleSheet("QLabel { background-color: #333343; color: white; }")
+        main_window.statusLabel.setStyleSheet("QLabel { background-color: #3C4043; color: white; }")
         main_window.mainLayout.addWidget(main_window.statusLabel)
 
         main_window.entityRateLabel = QLabel('0 Entities/Second', main_window)
@@ -165,7 +226,7 @@ def initialize_main_window(main_window, app):
 
         main_window.fileCountLabel = QLabel('   0 FILES SELECTED', main_window)
         main_window.fileCountLabel.setMinimumHeight(40)
-        main_window.fileCountLabel.setStyleSheet("QLabel { background-color: #333343; color: white; }")
+        main_window.fileCountLabel.setStyleSheet("QLabel { background-color: #3C4043; color: white; }")
         main_window.mainLayout.addWidget(main_window.fileCountLabel)
 
         # Export Layout
@@ -173,23 +234,44 @@ def initialize_main_window(main_window, app):
         
         # Create a GroupBox for the CheckboxPanel
         exportOptionsGroupBox = QGroupBox("EXPORT OPTIONS", main_window)
-        exportOptionsGroupBox.setStyleSheet("QGroupBox::title { color: white; }")  # Set title color to white
+        #exportOptionsGroupBox.setStyleSheet("QGroupBox::title { color: white; }")  # Set title color to white
         exportOptionsLayout = QVBoxLayout(exportOptionsGroupBox)
 
         # Create a horizontal layout
         filterLayout = QHBoxLayout()
 
+        # Create the "Check All" button
+        checkAllButton = QPushButton("Check All", main_window)
+        checkAllButton.clicked.connect(lambda: main_window.checkboxPanel.checkAllVisible())
+
+        # Create the "Uncheck All" button
+        uncheckAllButton = QPushButton("Uncheck All", main_window)
+        uncheckAllButton.clicked.connect(lambda: main_window.checkboxPanel.uncheckAllVisible())
+
+        expandAllButton = QPushButton("Expand All", main_window)
+        expandAllButton.clicked.connect(lambda: main_window.checkboxPanel.expandAllTreeItems())
+
+        collapseAllButton = QPushButton("Collapse All", main_window)
+        collapseAllButton.clicked.connect(lambda: main_window.checkboxPanel.collapseAllTreeItems())
+
+        # Add buttons to the filter layout, to the left of the filter label
+        filterLayout.addWidget(checkAllButton)
+        filterLayout.addWidget(uncheckAllButton)
+        filterLayout.addWidget(expandAllButton)
+        filterLayout.addWidget(collapseAllButton)
+        
         # Create the label for the filter
-        filterLabel = QLabel("Filter by checkboxes or shortcuts (ex. IPv4 Address or ipv4pu):")
+        filterLabel = QLabel("Filter options:")
         filterLayout.addWidget(filterLabel)  # Add label to the horizontal layout
 
         # Add Text Input for Filtering
         filterLineEdit = QLineEdit(main_window)
-        filterLineEdit.setPlaceholderText("Filter checkboxes...")
+        filterLineEdit.setPlaceholderText("   enter shortcuts, tooltips, or entity types")
         filterLineEdit.setStyleSheet("""
             QLineEdit {
-                background-color: #232323; /* Background color */
+                background-color: #3C4043; /* Background color */
                 color: white; /* Text color */
+                min-height: 20px;
             }
         """)
         filterLayout.addWidget(filterLineEdit)  # Add line edit to the horizontal layout
@@ -210,70 +292,57 @@ def initialize_main_window(main_window, app):
         
         # Export Settings as a Grid Layout
         exportSettingsLayout = QGridLayout()
+        item_height = 20
+        visible_items = 3
 
-        # Output Format
-        outputFormatLabel = QLabel('OUTPUT FORMAT SELECTION')
-        exportSettingsLayout.addWidget(outputFormatLabel, 0, 0)
+        # Set a fixed width for both QListWidgets (adjust the width as needed)
+        list_widget_width = 400
+        outputFormatGroupBox = QGroupBox("OUTPUT FORMAT SELECTION", main_window)
+        outputFormatLayout = QVBoxLayout(outputFormatGroupBox)
 
         main_window.outputFormatList = QListWidget()
         main_window.outputFormatList.addItems(['HTML', 'Interactive HTML', 'XLSX'])
         main_window.outputFormatList.setCurrentRow(0)
-        exportSettingsLayout.addWidget(main_window.outputFormatList, 1, 0)
-        
+        main_window.outputFormatList.setFixedHeight(item_height * visible_items)
+        outputFormatLayout.addWidget(main_window.outputFormatList)
 
         # Label to display current selection of output format
         main_window.outputFormatSelectionLabel = QLabel('')
-        main_window.outputFormatSelectionLabel.setStyleSheet("QLabel { background-color: #333343; color: white; }")
-        exportSettingsLayout.addWidget(main_window.outputFormatSelectionLabel, 2, 0)
-
-        # Setup the output format and export context labels to accommodate multiline text
+        main_window.outputFormatSelectionLabel.setStyleSheet("QLabel { background-color: #3C4043; color: white; }")
         main_window.outputFormatSelectionLabel.setWordWrap(True)
-        main_window.outputFormatSelectionLabel.setMinimumHeight(80)  # Adjust height as needed for 3 lines
+        main_window.outputFormatSelectionLabel.setMinimumHeight(80)
+        outputFormatLayout.addWidget(main_window.outputFormatSelectionLabel)
 
-        # Export Context
-        exportContextLabel = QLabel('PRESENTATION OF RESULTS:')
-        exportSettingsLayout.addWidget(exportContextLabel, 0, 1)
+        exportSettingsLayout.addWidget(outputFormatGroupBox, 0, 0)
+
+        # Export Context Group Box
+        exportContextGroupBox = QGroupBox("PRESENTATION OF RESULTS", main_window)
+        exportContextLayout = QVBoxLayout(exportContextGroupBox)
 
         main_window.exportContextList = QListWidget()
         main_window.exportContextList.addItems(['Single-Line Context', 'Medium Context', 'Large Context', 'Compact Summary, no Context'])
         main_window.exportContextList.setCurrentRow(0)
-        exportSettingsLayout.addWidget(main_window.exportContextList, 1, 1)
-        
+        main_window.exportContextList.setFixedHeight(item_height * visible_items)
+        exportContextLayout.addWidget(main_window.exportContextList)
 
         # Label to display current selection of export context
         main_window.exportContextSelectionLabel = QLabel('')
-        main_window.exportContextSelectionLabel.setStyleSheet("QLabel { background-color: #333343; color: white; }")
-        exportSettingsLayout.addWidget(main_window.exportContextSelectionLabel, 2, 1)
-
-
+        main_window.exportContextSelectionLabel.setStyleSheet("QLabel { background-color: #3C4043; color: white; }")
         main_window.exportContextSelectionLabel.setWordWrap(True)
-        main_window.exportContextSelectionLabel.setMinimumHeight(80)  # Adjust height as needed for 3 lines
+        main_window.exportContextSelectionLabel.setMinimumHeight(80)
+        exportContextLayout.addWidget(main_window.exportContextSelectionLabel)
 
-        item_height = 20
-        visible_items = 5
-        stylesheet = """
-        QListWidget::item:selected {
-            background-color: #555555 !important; /* Adjust the color to your preference */
-            color: white !important; /* Adjust the text color for better visibility if needed */
-        }
-        QListWidget::item:hover {
-            background-color: #777777 !important; /* Optional: Different color for hover state */
-        }
-        """
+        exportSettingsLayout.addWidget(exportContextGroupBox, 0, 1)
 
-        main_window.outputFormatList.setFixedHeight(item_height * visible_items)
-        main_window.exportContextList.setFixedHeight(item_height * visible_items)
- 
-        main_window.outputFormatList.setStyleSheet(stylesheet)
-        main_window.exportContextList.setStyleSheet(stylesheet)
-
-                
-
-        # Connect signal to the update function
+        # Connect signals to the update functions
         main_window.outputFormatList.currentItemChanged.connect(update_output_format_label)
-
-        # Connect signal to the update function
         main_window.exportContextList.currentItemChanged.connect(update_export_context_label)
+
+        # Initially update the labels
+        update_output_format_label(main_window.outputFormatList.currentItem())
+        update_export_context_label(main_window.exportContextList.currentItem())
+
+
 
         # Initially update the label
         update_output_format_label(main_window.outputFormatList.currentItem())
@@ -295,6 +364,7 @@ def initialize_main_window(main_window, app):
         # Start Export Button
         main_window.startExportButton = QPushButton('Start Export', main_window)
         main_window.startExportButton.clicked.connect(main_window.start_export_process)
+        main_window.startExportButton.setStyleSheet(highlited_button_style)
         exportSettingsLayout.addWidget(main_window.startExportButton, 5, 1) 
 
 
@@ -309,7 +379,7 @@ def initialize_main_window(main_window, app):
         bottomLayout = QHBoxLayout()
         
         # Link to GitHub Repo
-        main_window.githubLink = QLabel('<a href="https://github.com/overcuriousity/LoglineLeviathan/">GitHub</a>', main_window)
+        main_window.githubLink = QLabel('<a href="https://github.com/overcuriousity/LoglineLeviathan">GitHub</a>', main_window)
         main_window.githubLink.setOpenExternalLinks(True)
         bottomLayout.addWidget(main_window.githubLink)
 

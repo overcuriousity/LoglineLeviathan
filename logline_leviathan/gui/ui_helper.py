@@ -27,11 +27,27 @@ class UIHelper():
         if self.main_window.isProcessing():
             self.main_window.showProcessingWarning()
             return
+
         options = QFileDialog.Options()
-        directory = QFileDialog.getExistingDirectory(self.main_window, "Select Directory", "", options=options)
-        if directory:
-            self.addAllFilesFromDirectory(directory)
-            self.main_window.fileCountLabel.setText(f"   {len(self.main_window.filePaths)} files selected for analysis.")
+        options |= QFileDialog.DontUseNativeDialog
+        fileDialog = QFileDialog(self.main_window, "Select Directories", "", options=options)
+        fileDialog.setFileMode(QFileDialog.Directory)
+        fileDialog.setOption(QFileDialog.ShowDirsOnly, True)
+        fileDialog.setOption(QFileDialog.DontResolveSymlinks, True)
+        
+        # Store previously selected directories
+        selected_directories = []
+
+        while True:
+            if fileDialog.exec_() == QFileDialog.Accepted:
+                directory = fileDialog.selectedFiles()[0]
+                if directory and directory not in selected_directories:
+                    selected_directories.append(directory)
+                    self.addAllFilesFromDirectory(directory)
+            else:
+                break  # Exit loop if user cancels
+
+        self.main_window.fileCountLabel.setText(f"   {len(self.main_window.filePaths)} files selected for analysis.")
 
     def addAllFilesFromDirectory(self, directory):
         for root, dirs, files in os.walk(directory):
@@ -41,12 +57,13 @@ class UIHelper():
                     self.main_window.filePaths.append(file_path)
 
 
+
     def clearFileSelection(self):
         if self.main_window.isProcessing():
             self.main_window.showProcessingWarning()
             return
         self.main_window.filePaths.clear()
-        self.main_window.fileCountLabel.setText('0 files selected.')
+        self.main_window.fileCountLabel.setText('   0 files selected.')
 
     def openOutputDir(self):
         outputDirPath = os.path.dirname(self.main_window.outputFilePath)

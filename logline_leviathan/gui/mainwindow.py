@@ -2,9 +2,7 @@ import sys
 import os
 import logging
 import shutil
-from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QFileDialog, QLabel, QDialog, QDialogButtonBox, QGroupBox, QRadioButton
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtCore import QUrl
+from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QFileDialog, QLabel
 from logline_leviathan.file_processor.file_processor_thread import FileProcessorThread
 from logline_leviathan.database.database_manager import get_db_session, EntityTypesTable, EntitiesTable, session_scope
 from logline_leviathan.database.database_utility import DatabaseUtility
@@ -83,6 +81,11 @@ class MainWindow(QWidget):
 
         self.updateCheckboxes()
 
+    def quickStartWorkflow(self):
+        self.clearFileSelection()
+        self.purgeDatabase()
+        self.openDirNameDialog()
+        self.processFiles()
 
     def purgeDatabase(self):
         self.database_utility.purgeDatabase()
@@ -285,7 +288,25 @@ class MainWindow(QWidget):
 
     def message(self, title, text, extra_widget=None):
         msgBox = QMessageBox()
-        msgBox.setStyleSheet("QMessageBox { background-color: #333343; color: white; }")
+        msgBox.setStyleSheet("""
+            QMessageBox {
+                background-color: #282C34; /* Dark grey background */
+            }
+            QLabel {
+                color: white; /* White text */
+            }
+            QPushButton {
+                color: white; /* White text for buttons */
+                background-color: #4B5563; /* Dark grey background for buttons */
+                border-style: solid;
+                border-width: 2px;
+                border-radius: 5px;
+                border-color: #4A4A4A;
+                padding: 6px;
+                min-width: 80px;
+                min-height: 30px;
+            }
+        """)
         msgBox.setIcon(QMessageBox.Warning)
         msgBox.setWindowTitle(title)
         msgBox.setText(text)
@@ -293,6 +314,7 @@ class MainWindow(QWidget):
             msgBox.setInformativeText('')
             msgBox.layout().addWidget(extra_widget, 1, 1)
         msgBox.exec_()
+
 
 
 def main():
