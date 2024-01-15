@@ -56,16 +56,17 @@ def generate_niceoutput_file(output_file_path, db_session, checkboxes, context_s
                 "buttons": ['copy', 'csv', 'excel', 'pdf', 'print'],
                 "searching": true,
                 "fixedHeader": true,
-                "autoWidth": false,
-                "lengthChange": true,
-                "pageLength": 10
+                "autoWidth": true,
+                "lengthChange": false,
+                "pageLength": 10,
+                "orderCellsTop": true,
             }});
 
             // Create dropdown filtering menus
             $('#example thead tr').clone(true).appendTo('#example thead');
             $('#example thead tr:eq(1) th').each(function (i) {{
                 var title = $(this).text();
-                if (title === 'Entity Type' || title === 'Entity') {{
+                if (title === 'Entity Type' || title === 'Entity' || title === 'Occurrences' || title === 'Timestamp' || title === 'Sources') {{
                     var select = $('<select><option value=""></option></select>')
                         .appendTo($(this).empty())
                         .on('change', function () {{
