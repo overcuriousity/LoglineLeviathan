@@ -1,76 +1,13 @@
 import logging
 import os
 import yaml
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QRadioButton, QPushButton
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QMessageBox, QLabel, QRadioButton, QPushButton
 from logline_leviathan.gui.ui_helper import UIHelper
 
 from logline_leviathan.database.database_manager import *
 
 
-"""Yaml Structure:
-IPv4pu:
-  entity_type: ipv4pu
-  gui_name: Public Address Range
-  gui_tooltip: Outputs any IPv4 addresses of the public address range.
-  parent_type: ipv4
-  regex_pattern: \b((?!10\.)(?!172\.(1[6-9]|2[0-9]|3[0-1]))(?!192\.168)(?:[0-9]{1,3}\.){3}[0-9]{1,3})\b
-ipv4:
-  entity_type: ipv4
-  gui_name: IPv4 Address
-  gui_tooltip: Outputs any IPv4 addresses.
-  parent_type: root
-  regex_pattern: \b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b
-"""
 
-"""Database Structure:
-class DistinctEntitiesTable(Base):
-    __tablename__ = 'distinct_entities_table' 
-    distinct_entities_id = Column(Integer, primary_key=True)
-    distinct_entity = Column(String)
-    entity_types_id = Column(Integer, ForeignKey('entity_types_table.entity_type_id'))
-    regex_library = relationship("EntityTypesTable")  
-    individual_entities = relationship("EntitiesTable", back_populates="entity")
-
-class EntitiesTable(Base):
-    __tablename__ = 'entities_table' 
-    entities_id = Column(Integer, primary_key=True)
-    distinct_entities_id = Column(Integer, ForeignKey('distinct_entities_table.distinct_entities_id'))
-    entity_types_id = Column(Integer, ForeignKey('entity_types_table.entity_type_id'))
-    regex_library = relationship("EntityTypesTable")  
-    file_id = Column(Integer, ForeignKey('file_metadata.file_id')) 
-    line_number = Column(Integer) 
-    entry_timestamp = Column(DateTime)
-
-    entity = relationship("DistinctEntitiesTable", back_populates="individual_entities")
-    file = relationship("FileMetadata")
-    context = relationship("ContextTable", uselist=False, back_populates="individual_entity")
-
-class ContextTable(Base):
-    __tablename__ = 'context_table' 
-    context_id = Column(Integer, primary_key=True)
-    entities_id = Column(Integer, ForeignKey('entities_table.entities_id'))
-    context_small = Column(Text) 
-    context_medium = Column(Text) 
-    context_large = Column(Text) 
-    individual_entity = relationship("EntitiesTable", back_populates="context")
-
-class FileMetadata(Base):
-    __tablename__ = 'file_metadata'
-    # all stays as it is
-    file_id = Column(Integer, primary_key=True)
-    file_name = Column(String)
-    file_path = Column(String)
-    file_mimetype = Column(String)
-
-class EntityTypesTable(Base):
-    __tablename__ = 'entity_types_table'
-    entity_type_id = Column(Integer, primary_key=True)
-    entity_type = Column(String)
-    regex_pattern = Column(String)
-    gui_tooltip = Column(String)
-    gui_name = Column(String)
-    parent_type = Column(String, default='root')  # hierarchical structure from yaml specs
-    """
 
 class DatabaseOperations:
     def __init__(self, main_window, db_init_func):
@@ -96,7 +33,7 @@ class DatabaseOperations:
     
     def notify_duplicates_from_yaml(self, yaml_data):
         duplicates = []
-        seen_fields = {'entity_type': {}, 'gui_name': {}, 'gui_tooltip': {}, 'regex_pattern': {}}
+        seen_fields = {'entity_type': {}, 'gui_name': {}, 'gui_tooltip': {}, 'regex_pattern': {}, 'script_parser': {}}
 
         for entity_name, entity_data in yaml_data.items():
             # Iterate through each field and check for duplicates
@@ -163,7 +100,7 @@ class DatabaseOperations:
         for db_ent in db_entities:
             if any(
                 getattr(db_ent, key) == yaml_entity[key] 
-                for key in ['entity_type', 'gui_name', 'gui_tooltip', 'regex_pattern'] 
+                for key in ['entity_type', 'gui_name', 'gui_tooltip', 'regex_pattern', 'script_parser'] 
                 if yaml_entity[key]
             ):
                 return db_ent
@@ -185,7 +122,7 @@ class DatabaseOperations:
 
             if any(
                 getattr(db_ent, key) == yaml_entity[key] and yaml_entity[key] is not None
-                for key in ['entity_type', 'gui_name', 'gui_tooltip', 'regex_pattern']
+                for key in ['entity_type', 'gui_name', 'gui_tooltip', 'regex_pattern', 'script_parser']
             ):
                 logging.debug(f"Found duplicate entity: {db_ent}")
                 return True
@@ -224,61 +161,12 @@ class DatabaseOperations:
                         'gui_name': entity.gui_name,
                         'gui_tooltip': entity.gui_tooltip,
                         'parent_type': entity.parent_type,
-                        'regex_pattern': entity.regex_pattern
+                        'regex_pattern': entity.regex_pattern,
+                        'script_parser': entity.script_parser
                     }
 
         with open('./data/entities.yaml', 'w') as file:
             yaml.dump(yaml_data, file)
-
-    def apply_resolution1(self, resolutions, session):
-        with open('./data/entities.yaml', 'r') as file:
-            yaml_data = yaml.safe_load(file)
-
-        for resolution, entity in resolutions:
-            if resolution == 'yaml':
-                logging.debug(f"Resolving YAML entity: {entity} with resolution: {resolution}")
-                db_entity = session.query(EntityTypesTable).filter_by(entity_type=entity['entity_type']).first()
-                logging.debug(f"Resolving YAML entity: {entity} with resolution: {resolution} and db_entity: {db_entity}")
-                
-                if db_entity:
-                    # Capture foreign keys using the database entity's ID
-                    foreign_keys = self.capture_foreign_keys(db_entity.entity_type_id, session)
-                    logging.debug(f"foreign_keys: {foreign_keys} for db_entity: {db_entity}")
-                    
-                    # Delete the existing database entry
-                    session.delete(db_entity)
-                    logging.debug(f"deleted db_entity: {db_entity}")
-                
-                # Create new entry with YAML data (for both new and replacing scenarios)
-                new_entity = EntityTypesTable(**entity)
-                session.add(new_entity)
-                logging.debug(f"added new_entity: {new_entity}")
-                
-                if db_entity:
-                    # If replacing, flush and reassign foreign keys
-                    session.flush()  # Flush to get the new entity ID
-                    logging.debug(f"flushed new_entity: {new_entity}")
-                    
-                    # Reassign foreign keys to the new entry
-                    self.reassign_foreign_keys(new_entity, foreign_keys, session)
-                    logging.debug(f"reassigned foreign_keys: {foreign_keys} to new_entity: {new_entity}")
-
-            elif resolution == 'db':
-                if entity:  # Existing database entity is chosen
-                    yaml_data[entity.entity_type] = {
-                        'entity_type': entity.entity_type,
-                        'gui_name': entity.gui_name,
-                        'gui_tooltip': entity.gui_tooltip,
-                        'parent_type': entity.parent_type,
-                        'regex_pattern': entity.regex_pattern
-                    }
-                else:  # Remove entry from YAML if it's a new YAML entry without db counterpart
-                    yaml_data.pop(entity['entity_type'], None)
-
-        with open('./data/entities.yaml', 'w') as file:
-            yaml.dump(yaml_data, file)
-
-
 
 
     def capture_foreign_keys(self, entity_id, session):
@@ -306,7 +194,29 @@ class DatabaseOperations:
             entity.entity_types_id = new_entity.entity_type_id
 
 
-        
+    def checkScriptPresence(self):
+        parser_directory = './data/parser'
+        missing_scripts = []
+
+        with session_scope() as session:
+            all_entities = session.query(EntityTypesTable).all()
+            for entity in all_entities:
+                script_name = entity.script_parser
+                if script_name:
+                    script_path = os.path.join(parser_directory, script_name)
+                    if not os.path.exists(script_path):
+                        missing_scripts.append(script_name)
+
+        if missing_scripts:
+            missing_scripts_str = "\n".join(missing_scripts)
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Missing Script Files")
+            msg.setText("Some script files are missing:")
+            msg.setInformativeText(missing_scripts_str)
+            msg.exec_()  # Display the message box
+
+        return missing_scripts
 
 
 class ResolveInconsistenciesDialog(QDialog):
@@ -370,7 +280,7 @@ class ResolveInconsistenciesDialog(QDialog):
             return "\n".join(f"{key}: {value}" for key, value in entity.items())
         else:
             # Database entity needs to be formatted
-            return "\n".join(f"{attr}: {getattr(entity, attr)}" for attr in ['entity_type', 'gui_name', 'gui_tooltip', 'parent_type', 'regex_pattern'])
+            return "\n".join(f"{attr}: {getattr(entity, attr)}" for attr in ['entity_type', 'gui_name', 'gui_tooltip', 'parent_type', 'regex_pattern', 'script_parser'])
 
 
 

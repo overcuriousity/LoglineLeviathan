@@ -1,9 +1,9 @@
 import logging
+import datetime
 import re
 from openpyxl import load_workbook
-from datetime import datetime
-from logline_leviathan.database.database_manager import EntityTypesTable
-from logline_leviathan.file_processor.file_database_ops import handle_file_metadata, handle_individual_entity, handle_distinct_entity, handle_context_snippet
+from logline_leviathan.file_processor.parser_thread import parse_content
+from logline_leviathan.file_processor.file_database_ops import handle_file_metadata, handle_individual_entity, handle_context_snippet, handle_distinct_entity
 
 def read_xlsx_content(file_path):
     try:
@@ -60,7 +60,6 @@ def process_xlsx_file(file_path, file_mimetype, thread_instance, db_session, abo
     try:
         logging.info(f"Starting processing of XLSX file: {file_path}")
         workbook = read_xlsx_content(file_path)
-        regex_patterns = db_session.query(EntityTypesTable).filter(EntityTypesTable.regex_pattern != None, EntityTypesTable.regex_pattern != '').all()
 
         if workbook is None:
             return 0
@@ -75,27 +74,27 @@ def process_xlsx_file(file_path, file_mimetype, thread_instance, db_session, abo
                 logging.info("Processing aborted.")
                 return entity_count
 
-            content = [' '.join([str(cell.value) if cell.value is not None else ' ' for cell in row]) for row in sheet.iter_rows()]
+            # Combining all cells into a single string for parsing
+            content = [' '.join([str(cell.value) if cell.value is not None else '' for cell in row]) for row in sheet.iter_rows()]
             full_content = '\n'.join(content)
-            for regex in regex_patterns:
-                if not regex.regex_pattern.strip():
+            thread_instance.update_status.emit(f"   Processing now: {file_path} sheet {sheet_name}")
+
+            # Call the new parser and get matches along with entity types
+            parsed_entities = parse_content(full_content, abort_flag, db_session)
+
+            for entity_type_id, match_text, start_pos, end_pos in parsed_entities:
+                if not match_text.strip():
                     continue
-                for match in re.finditer(regex.regex_pattern, full_content):
-                    match_text = match.group()
-                    if not match_text.strip():
-                        continue
 
-                    timestamp = find_timestamp_before_match(full_content, match.start())
-                    match_start_line, match_end_line = get_line_numbers_from_pos(content, match.start(), match.end())
+                # Match line number calculation to XLSX structure
+                match_start_line, match_end_line = get_line_numbers_from_pos(content, start_pos, end_pos)
 
-                    entity = handle_distinct_entity(db_session, match_text, regex.entity_type_id)
-                    individual_entity = handle_individual_entity(db_session, entity, file_metadata, match_start_line, timestamp, regex.entity_type_id, abort_flag, thread_instance)
+                entity = handle_distinct_entity(db_session, match_text, entity_type_id)
+                individual_entity = handle_individual_entity(db_session, entity, file_metadata, match_start_line, None, entity_type_id, abort_flag, thread_instance)
+                if individual_entity:
+                    handle_context_snippet(db_session, individual_entity, content, match_start_line, match_end_line)
+                    entity_count += 1
 
-                    if individual_entity:
-                        handle_context_snippet(db_session, individual_entity, content, match_start_line, match_end_line)
-                        entity_count += 1
-
-            thread_instance.update_status.emit(f"   Finished processing sheet: {sheet_name}")
 
         logging.info(f"   Finished processing XLSX file: {file_path}")
         return entity_count
@@ -103,4 +102,5 @@ def process_xlsx_file(file_path, file_mimetype, thread_instance, db_session, abo
         db_session.rollback()
         logging.error(f"Error processing XLSX file {file_path}: {e}")
         return 0
+
 

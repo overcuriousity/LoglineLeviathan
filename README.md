@@ -41,7 +41,7 @@ This guide applies to building the application from source on a Linux host.
 
 ## **Usage**
 
-### Analysis:
+
 
 > On startup, a new database will be created by default and populated with the available entities. If a database from a prior session is present, it will be used.
 
@@ -58,3 +58,9 @@ After startup, no files are selected for ingestion. Starting from there, you hav
     
 
 Button "Start/Resume File Analysis" strats the file ingestion and database population.
+
+After that, you can proceed further, making searches with the integrated search engine, gnerate a report or a wordlist (which could also be used for parsing).
+
+## **Customization**
+
+The big strength of this application is, that it can be easily be expanded with additional analysis methods with minimal effort. Just append the yaml file in ./data/entities.yaml with entries by the given structure, and add the corresponding scripts in ./data/parser if desired. The GUI elements will show up automatically.

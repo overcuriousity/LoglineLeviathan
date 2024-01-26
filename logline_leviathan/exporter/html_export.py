@@ -1,6 +1,8 @@
 
 from logline_leviathan.exporter.export_constructor import generate_dataframe
 import re
+import pandas as pd
+
 
 def create_regex_pattern_from_entity(entity):
     words = entity.split()
@@ -14,7 +16,7 @@ def highlight_entities_in_context(context, entity_regex):
 
 def generate_html_file(output_file_path, db_session, checkboxes, context_selection, only_crossmatches):
     # Fetch data using the new DataFrame constructor
-    df = generate_dataframe(db_session, checkboxes, context_selection)
+    df = generate_dataframe(db_session, checkboxes, context_selection, only_crossmatches)
 
     # Add line breaks for HTML formatting where needed
     if context_selection == 'Compact Summary, no Context':

@@ -1,8 +1,8 @@
 import logging
-import re
 import pdfplumber
+import re
 from datetime import datetime
-from logline_leviathan.database.database_manager import EntityTypesTable
+from logline_leviathan.file_processor.parser_thread import parse_content
 from logline_leviathan.file_processor.file_database_ops import handle_file_metadata, handle_individual_entity, handle_distinct_entity, handle_context_snippet
 
 logging.getLogger('pdfminer').setLevel(logging.WARNING)
@@ -20,7 +20,6 @@ def process_pdf_file(file_path, file_mimetype, thread_instance, db_session, abor
     try:
         logging.info(f"Starting processing of PDF file: {file_path}")
         pages = read_pdf_content(file_path)
-        regex_patterns = db_session.query(EntityTypesTable).filter(EntityTypesTable.regex_pattern != None, EntityTypesTable.regex_pattern != '').all()
 
         if pages is None:
             return 0
@@ -35,31 +34,25 @@ def process_pdf_file(file_path, file_mimetype, thread_instance, db_session, abor
             if abort_flag():
                 logging.info("Processing aborted.")
                 return entity_count
+            thread_instance.update_status.emit(f"   Processing now: {file_path}, page {page_number + 1}")
 
-            full_content = content
-            for regex in regex_patterns:
-                if not regex.regex_pattern.strip():
+            # Call the new parser and get matches along with entity types
+            parsed_entities = parse_content(content, abort_flag, db_session)
+
+            for entity_type_id, match_text, start_pos, end_pos in parsed_entities:
+                if not match_text.strip():
                     continue
-                for match in re.finditer(regex.regex_pattern, full_content):
-                    if abort_flag():
-                        logging.info("Processing aborted during regex matching.")
-                        return entity_count
 
-                    match_text = match.group()
-                    if not match_text.strip():
-                        continue
+                timestamp = find_timestamp_before_match(content, start_pos)
+                match_start_line, match_end_line = get_line_numbers_from_pos(content, start_pos, end_pos)
 
-                    timestamp = None  # Handling timestamp in PDF might need a different approach
-                    match_start_line, match_end_line = get_line_numbers_from_pos(content, match.start(), match.end())
+                entity = handle_distinct_entity(db_session, match_text, entity_type_id)
+                individual_entity = handle_individual_entity(db_session, entity, file_metadata, match_start_line, timestamp, entity_type_id, abort_flag, thread_instance)
 
-                    entity = handle_distinct_entity(db_session, match_text, regex.entity_type_id)
-                    individual_entity = handle_individual_entity(db_session, entity, file_metadata, match_start_line, timestamp, regex.entity_type_id, abort_flag, thread_instance)
+                if individual_entity:
+                    handle_context_snippet(db_session, individual_entity, [content], match_start_line, match_end_line)
+                    entity_count += 1
 
-                    if individual_entity:
-                        handle_context_snippet(db_session, individual_entity, [content], match_start_line, match_end_line)
-                        entity_count += 1
-
-            thread_instance.update_status.emit(f"   Finished processing {file_path}, page {page_number + 1}")
 
         logging.info(f"   Finished processing PDF file: {file_path}")
         return entity_count

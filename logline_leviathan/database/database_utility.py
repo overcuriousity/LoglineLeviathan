@@ -54,6 +54,7 @@ class DatabaseUtility():
         if db_file and db_file.endswith(".db"):
             try:
                 shutil.copy(db_file, 'entities.db')
+                self.main_window.current_db_path = db_file
                 self.main_window.statusLabel.setText("   External database selected for this session.")
                 self.main_window.refreshApplicationState()
             except Exception as e:

@@ -1,7 +1,7 @@
 import re
 import logging
+from logline_leviathan.file_processor.parser_thread import parse_content
 from datetime import datetime
-from logline_leviathan.database.database_manager import EntityTypesTable
 from logline_leviathan.file_processor.file_database_ops import handle_file_metadata, handle_individual_entity, handle_context_snippet, handle_distinct_entity
 
 def read_file_content(file_path):
@@ -15,36 +15,30 @@ def read_file_content(file_path):
 
 def process_text_file(file_path, file_mimetype, thread_instance, db_session, abort_flag):
     try:
-        logging.info(f"Starting processing of text file: {file_path}")
+        #logging.info(f"Starting processing of text file: {file_path}")
         file_metadata = handle_file_metadata(db_session, file_path, file_mimetype)
         content = read_file_content(file_path)
-        regex_patterns = db_session.query(EntityTypesTable).filter(EntityTypesTable.regex_pattern != None, EntityTypesTable.regex_pattern != '').all()
+        full_content = ''.join(content)  # Join all lines into a single string
+        thread_instance.update_status.emit(f"   Processing now: {file_path}")
+
+        # Call the new parser and get matches along with entity types
+        parsed_entities = parse_content(full_content, abort_flag, db_session)
 
         entity_count = 0
-        full_content = ''.join(content)  # Join all lines into a single string
-        for regex in regex_patterns:
-            if not regex.regex_pattern.strip():
+        for entity_type_id, match_text, start_pos, end_pos in parsed_entities:
+            if not match_text.strip():
                 continue
 
-            for match in re.finditer(regex.regex_pattern, full_content):
-                if abort_flag():  # Check the abort flag
-                    logging.info("   Processing aborted.")
-                    return entity_count
+            timestamp = find_timestamp_before_match(full_content, start_pos)
+            match_start_line, match_end_line = get_line_numbers_from_pos(content, start_pos, end_pos)
 
-                match_text = match.group()
-                if not match_text.strip():
-                    continue
-
-                timestamp = find_timestamp_before_match(full_content, match.start())
-                match_start_line, match_end_line = get_line_numbers_from_pos(content, match.start(), match.end())
-                entity = handle_distinct_entity(db_session, match_text, regex.entity_type_id)
-                individual_entity = handle_individual_entity(db_session, entity, file_metadata, match_start_line, timestamp, regex.entity_type_id, abort_flag, thread_instance)
+            entity = handle_distinct_entity(db_session, match_text, entity_type_id)
+            individual_entity = handle_individual_entity(db_session, entity, file_metadata, match_start_line, timestamp, entity_type_id, abort_flag, thread_instance)
                 
-                if individual_entity:
-                    entity_count += 1
-                    handle_context_snippet(db_session, individual_entity, content, match_start_line, match_end_line)
+            if individual_entity:
+                entity_count += 1
+                handle_context_snippet(db_session, individual_entity, content, match_start_line, match_end_line)
 
-        thread_instance.update_status.emit(f"   Finished processing text file: {file_path}")
         return entity_count
     except Exception as e:
         db_session.rollback()

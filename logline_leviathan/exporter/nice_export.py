@@ -13,7 +13,7 @@ def highlight_entities_in_context(context, entity_regex):
 
 def generate_niceoutput_file(output_file_path, db_session, checkboxes, context_selection, only_crossmatches):
     # Fetch data using the new DataFrame constructor
-    df = generate_dataframe(db_session, checkboxes, context_selection)
+    df = generate_dataframe(db_session, checkboxes, context_selection, only_crossmatches)
 
     # Add line breaks for HTML formatting where needed
     if context_selection == 'Compact Summary, no Context':
@@ -56,8 +56,8 @@ def generate_niceoutput_file(output_file_path, db_session, checkboxes, context_s
                 "buttons": ['copy', 'csv', 'excel', 'pdf', 'print'],
                 "searching": true,
                 "fixedHeader": true,
-                "autoWidth": true,
-                "lengthChange": false,
+                "autoWidth": false,
+                "lengthChange": true,
                 "pageLength": 10,
                 "orderCellsTop": true,
             }});
@@ -66,7 +66,7 @@ def generate_niceoutput_file(output_file_path, db_session, checkboxes, context_s
             $('#example thead tr').clone(true).appendTo('#example thead');
             $('#example thead tr:eq(1) th').each(function (i) {{
                 var title = $(this).text();
-                if (title === 'Entity Type' || title === 'Entity' || title === 'Occurrences' || title === 'Timestamp' || title === 'Sources') {{
+                if (title === 'Entity Type' || title === 'Entity' || title === 'Occurrences' || title === 'Timestamp' || title === 'Sources' || title === 'Source File' || title === 'Line Number') {{
                     var select = $('<select><option value=""></option></select>')
                         .appendTo($(this).empty())
                         .on('change', function () {{
@@ -87,6 +87,7 @@ def generate_niceoutput_file(output_file_path, db_session, checkboxes, context_s
     </script>
 </body>
 </html>""".format(html_table)
+
 
     # Write the HTML template to the file
     with open(output_file_path, 'w', encoding='utf-8') as file:

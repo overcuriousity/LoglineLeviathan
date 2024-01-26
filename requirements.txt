@@ -6,3 +6,7 @@ pandas
 python-magic
 openpyxl
 pdfplumber
+tldextract
+fuzzywuzzy
+python-Levenshtein
+phonenumbers

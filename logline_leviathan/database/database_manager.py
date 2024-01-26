@@ -13,21 +13,21 @@ Base = declarative_base()
 
 class DistinctEntitiesTable(Base):
     __tablename__ = 'distinct_entities_table' 
-    distinct_entities_id = Column(Integer, primary_key=True)
-    distinct_entity = Column(String)
-    entity_types_id = Column(Integer, ForeignKey('entity_types_table.entity_type_id'))
+    distinct_entities_id = Column(Integer, primary_key=True) #is the primary key of the distinct_entities_table
+    distinct_entity = Column(String, index=True) # is the distinct entity iself, e.g. 192.168.1.1, 192.168.1.1, etc., bc1qy3h5l8n9, etc.
+    entity_types_id = Column(Integer, ForeignKey('entity_types_table.entity_type_id')) # is the foreign key of the entity_types_table
     regex_library = relationship("EntityTypesTable")  
     individual_entities = relationship("EntitiesTable", back_populates="entity")
 
 class EntitiesTable(Base):
     __tablename__ = 'entities_table' 
-    entities_id = Column(Integer, primary_key=True)
-    distinct_entities_id = Column(Integer, ForeignKey('distinct_entities_table.distinct_entities_id'))
-    entity_types_id = Column(Integer, ForeignKey('entity_types_table.entity_type_id'))
+    entities_id = Column(Integer, primary_key=True) # is the primary key of the entities_table
+    distinct_entities_id = Column(Integer, ForeignKey('distinct_entities_table.distinct_entities_id')) # is the foreign key of the distinct_entities_table
+    entity_types_id = Column(Integer, ForeignKey('entity_types_table.entity_type_id')) # is the foreign key of the entity_types_table
     regex_library = relationship("EntityTypesTable")  
-    file_id = Column(Integer, ForeignKey('file_metadata.file_id')) 
-    line_number = Column(Integer) 
-    entry_timestamp = Column(DateTime)
+    file_id = Column(Integer, ForeignKey('file_metadata.file_id')) # is the foreign key of the file_metadata
+    line_number = Column(Integer) # is the line number - the line inside the file which is available in the file_metadata
+    entry_timestamp = Column(DateTime) # the timestamp which was obtained via regex from the original input file
 
     entity = relationship("DistinctEntitiesTable", back_populates="individual_entities")
     file = relationship("FileMetadata")
@@ -35,28 +35,30 @@ class EntitiesTable(Base):
 
 class ContextTable(Base):
     __tablename__ = 'context_table' 
-    context_id = Column(Integer, primary_key=True)
-    entities_id = Column(Integer, ForeignKey('entities_table.entities_id'))
-    context_small = Column(Text) 
-    context_medium = Column(Text) 
-    context_large = Column(Text) 
+    context_id = Column(Integer, primary_key=True) # is the primary key of the context_table
+    entities_id = Column(Integer, ForeignKey('entities_table.entities_id')) # is the foreign key of the entities_table
+    context_small = Column(Text) # is the context of the entity which was parsed from the original file, by a specific number of lines before and after the entity
+    context_medium = Column(Text) # is the context of the entity which was parsed from the original file, by a specific number of lines before and after the entity
+    context_large = Column(Text, index=True)
+    #context_indexed = Column(Text, index=True) # is the context of the entity which was parsed from the original file, by a specific number of lines before and after the entity
     individual_entity = relationship("EntitiesTable", back_populates="context")
 
 class FileMetadata(Base):
     __tablename__ = 'file_metadata'
     # all stays as it is
-    file_id = Column(Integer, primary_key=True)
-    file_name = Column(String)
-    file_path = Column(String)
-    file_mimetype = Column(String)
+    file_id = Column(Integer, primary_key=True) # is the primary key of the file_metadata
+    file_name = Column(String, index=True) # is the name of the original input file
+    file_path = Column(String) # is the path of the original input file
+    file_mimetype = Column(String) # is the MIME type of the original input file
 
 class EntityTypesTable(Base):
     __tablename__ = 'entity_types_table'
-    entity_type_id = Column(Integer, primary_key=True)
-    entity_type = Column(String)
-    regex_pattern = Column(String)
-    gui_tooltip = Column(String)
-    gui_name = Column(String)
+    entity_type_id = Column(Integer, primary_key=True) # is the primary key of the entity_types_table
+    entity_type = Column(String) # is the entity type short form, e.g. ipv4, ipv6, btcaddr, etc
+    regex_pattern = Column(String) # a regex pattern which could be used for parsing the files
+    script_parser = Column(String) # the name of the python script which could be used for parsing the files
+    gui_tooltip = Column(String) # the GUI tooltip
+    gui_name = Column(String) # the GUI name which is more descriptive than entity_type
     parent_type = Column(String, default='root')  # hierarchical structure from yaml specs
     
 

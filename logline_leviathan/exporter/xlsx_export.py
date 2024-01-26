@@ -5,10 +5,15 @@ from logline_leviathan.exporter.export_constructor import generate_dataframe
 
 def generate_xlsx_file(output_file_path, db_session, checkboxes, context_selection, only_crossmatches):
     # Fetch data using the new DataFrame constructor
-    df = generate_dataframe(db_session, checkboxes, context_selection)
+    df = generate_dataframe(db_session, checkboxes, context_selection, only_crossmatches)
     
     # Reorder columns
-    df = df[["Entity Type", "Entity", "Occurrences", "Timestamp", "Sources", "Context"]]
+    # Check if 'Sources' or 'Source File' and 'Line Number' columns are in the DataFrame
+    if 'Sources' in df.columns:
+        df = df[["Entity Type", "Entity", "Occurrences", "Timestamp", "Sources", "Context"]]
+    elif 'Source File' in df.columns and 'Line Number' in df.columns:
+        df = df[["Entity Type", "Entity", "Occurrences", "Timestamp", "Source File", "Line Number", "Context"]]
+
 
     # Create a new Workbook
     workbook = Workbook()

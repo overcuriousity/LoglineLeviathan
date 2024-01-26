@@ -91,8 +91,9 @@ def count_newlines(content, start, end):
 def handle_context_snippet(db_session, individual_entity, content, start_line, end_line):
     context_sizes = {
         'Single-Line Context': 0,
-        'Medium Context': 5,
-        'Large Context': 10
+        'Medium Context': 8,
+        'Large Context': 15
+        #'Index Context': 30
     }
 
     context_snippets = {}
@@ -104,6 +105,7 @@ def handle_context_snippet(db_session, individual_entity, content, start_line, e
     context = ContextTable(entities_id=individual_entity.entities_id,
                            context_small=context_snippets['Single-Line Context'],
                            context_medium=context_snippets['Medium Context'],
-                           context_large=context_snippets['Large Context'])
+                           context_large=context_snippets['Large Context']
+                           )
     db_session.add(context)
     db_session.commit()

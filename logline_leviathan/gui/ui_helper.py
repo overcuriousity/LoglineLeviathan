@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtCore import QUrl
 import os
+import math
 import logging
 import csv
 import sys 
@@ -18,10 +19,13 @@ class UIHelper():
         options = QFileDialog.Options()
         files, _ = QFileDialog.getOpenFileNames(self.main_window, "Select Files", "", ";All Files (*)", options=options)
         if files:
+            total_size = 0
             for file in files:
                 if file not in self.main_window.filePaths:
                     self.main_window.filePaths.append(file)
-            self.main_window.fileCountLabel.setText(f"   {len(self.main_window.filePaths)} files selected for analysis.")
+                    total_size += os.path.getsize(file)
+            readable_size = self.format_size(total_size)
+            self.main_window.fileCountLabel.setText(f"   {len(self.main_window.filePaths)} files selected, Total Size: {readable_size}")
 
     def openDirNameDialog(self):
         if self.main_window.isProcessing():
@@ -47,7 +51,20 @@ class UIHelper():
             else:
                 break  # Exit loop if user cancels
 
-        self.main_window.fileCountLabel.setText(f"   {len(self.main_window.filePaths)} files selected for analysis.")
+        total_size = 0
+        for file in self.main_window.filePaths:
+            total_size += os.path.getsize(file)
+        readable_size = self.format_size(total_size)
+        self.main_window.fileCountLabel.setText(f"   {len(self.main_window.filePaths)} files selected, Total Size: {readable_size}")
+
+    def format_size(self, size_bytes):
+        if size_bytes == 0:
+            return "0B"
+        size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+        i = int(math.floor(math.log(size_bytes, 1024)))
+        p = math.pow(1024, i)
+        s = round(size_bytes / p, 2)
+        return f"{s} {size_name[i]}"
 
     def addAllFilesFromDirectory(self, directory):
         for root, dirs, files in os.walk(directory):
@@ -96,7 +113,4 @@ def format_time(seconds):
     minutes = int(seconds // 60)
     seconds = int(seconds % 60)
     return f"{minutes} min {seconds} sec"
-
-
-
 

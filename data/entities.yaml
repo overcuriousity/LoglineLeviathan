@@ -1,66 +1,70 @@
-category_communication:
-  entity_type: category_communication
-  gui_name: Communication
-  gui_tooltip: Communication related entities.
+category_special:
+  entity_type: category_special
+  gui_name: Special Parsers
+  gui_tooltip: Special parsers, e.g. created wordlists.
   parent_type: root
   regex_pattern: null
+  script_parser: null
+wordlist_match:
+  entity_type: wordlist_match
+  gui_name: Wordlist Match
+  gui_tooltip: Outputs any wordlist matches which are specified by the wordlist present in the parsers directory.
+  parent_type: category_special
+  regex_pattern: null
+  script_parser: wordlist.py
+category_internet:
+  entity_type: category_internet
+  gui_name: Internet
+  gui_tooltip: Internet related entities.
+  parent_type: root
+  regex_pattern: null
+  script_parser: null
 category_networking:
   entity_type: category_networking
   gui_name: Networking
   gui_tooltip: Networking related entities.
   parent_type: root
   regex_pattern: null
+  script_parser: null
 ipv4:
   entity_type: ipv4
   gui_name: IPv4 Address
   gui_tooltip: Outputs any IPv4 addresses.
   parent_type: category_networking
   regex_pattern: \b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b
+  script_parser: ipv4.py
 ipv4pr:
   entity_type: ipv4pr
   gui_name: Private Address Range
   gui_tooltip: Outputs any IPv4 addresses of the private address range.
   parent_type: ipv4
   regex_pattern: \b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b
+  script_parser: ipv4pr.py
 ipv4pu:
   entity_type: ipv4pu
   gui_name: Public Address Range
-  gui_tooltip: Outputs any IPv4 addresses of the public address range (YAML VALUE).
+  gui_tooltip: Outputs any IPv4 addresses of the public address range.
   parent_type: ipv4
   regex_pattern: \b((?!10\.)(?!172\.(1[6-9]|2[0-9]|3[0-1]))(?!192\.168)(?:[0-9]{1,3}\.){3}[0-9]{1,3})\b
+  script_parser: ipv4pu.py
 ipv6:
   entity_type: ipv6
-  gui_name: IPv6 Address(should got to database)
+  gui_name: IPv6 Address
   gui_tooltip: Outputs any IPv6 addresses.
   parent_type: category_networking
-  regex_pattern: \b(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}\b
-mailaddr:
-  entity_type: mailaddr
-  gui_name: EMail Address
-  gui_tooltip: Outputs any possible email-addresses.
-  parent_type: category_communication
-  regex_pattern: \b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b
+  regex_pattern: (([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))
+  script_parser: ipv6.py
 macaddr:
   entity_type: macaddr
   gui_name: MAC Address
   gui_tooltip: Outputs any possible MAC addresses.
   parent_type: category_networking
   regex_pattern: \b(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\b
-#category_webserver:
-#  entity_type: category_webserver
-#  gui_name: Webserver Log Item
-#  gui_tooltip: Webserver related entities.
-#  parent_type: root
-#  regex_pattern: null
-#apache_access_log_entry:
-#  entity_type: apache_access_log_entry
-#  gui_name: Apache Access Log Entry
-#  gui_tooltip: Outputs any Apache access log entries.
-#  parent_type: category_webserver
-#  regex_pattern: (?P<ip>.*?) (?P<remote_log_name>.*?) (?P<userid>.*?) \[(?P<date>.*?)(?= ) (?P<timezone>.*?)\] \"(?P<request_method>.*?) (?P<path>.*?)(?P<request_version> HTTP/.*)?\" (?P<status>.*?) (?P<length>.*?) \"(?P<referrer>.*?)\" \"(?P<user_agent>.*?)\" (?P<session_id>.*?) (?P<generation_time_micro>.*?) (?P<virtual_host>.*)
-#apache_log_GET:
-#  entity_type: apache_log_GET
-#  gui_name: Apache Log GET Request
-#  gui_tooltip: Outputs any Apache GET requests.
-#  parent_type: apache_access_log_entry
-#  regex_pattern: \bGET (?P<path>.*?) HTTP/1.1\b
+  script_parser: null
+url:
+  entity_type: url
+  gui_name: URL
+  gui_tooltip: Outputs any possible URL.
+  parent_type: category_internet
+  regex_pattern: \b(?:https?|s?ftp):\/\/[\w\/.-]+(?:\.[a-z]{2,})+\S*
+  script_parser: url.py
